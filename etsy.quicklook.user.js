@@ -23,15 +23,28 @@ for (var i = 0; i < listingCards.snapshotLength; i++) {
     listingIds[i] = listingCard.id.replace('lid','');
 }
 
-url="http://openapi.etsy.com/v2/sandbox/public/listings/" 
-  + listingIds.join(',') 
-  + "?api_key=" + API_KEY
-  + "&includes=Images";
+url = "http://openapi.etsy.com/v2/sandbox/public/listings/" 
+      + listingIds.join(',') 
+      + "?api_key=" + API_KEY
+      + "&includes=Images";
+
 GM_xmlhttpRequest({ method: "GET", 
                     url: url, 
                     onload: onListingsLoaded });
 
 function onListingsLoaded(response) {
+    if(response.status != 200) {
+        /* workaround for listings that aren't in the sandbox */
+        if(matches = response.responseText.match(/Listing with PK listing_id = (\d+) does not exist/)) {
+            url = response.finalUrl.replace(matches[1],'');
+            url = url.replace(',,',',');
+            GM_xmlhttpRequest({ method: "GET", 
+                                url: url, 
+                                onload: onListingsLoaded });
+        }
+        return;
+    }
+
     if(window.JSON && JSON.parse){
         data = JSON.parse(response.responseText);
     }
